@@ -44,6 +44,25 @@ docker build -t ado-mcp:local .
 docker run -p 8080:8080 --env-file .env ado-mcp:local
 ```
 
+## Compose Variants
+
+### Test runner compose
+
+Runs the test suite inside a container:
+
+```bash
+docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test
+```
+
+### GHCR pull compose
+
+Pulls and runs the prebuilt image from GitHub Container Registry:
+
+```bash
+docker compose -f docker-compose.ghcr.yml pull
+docker compose -f docker-compose.ghcr.yml up -d
+```
+
 ## Running Locally
 
 ```bash
