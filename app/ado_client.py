@@ -6,6 +6,7 @@ from typing import Any, Optional
 import requests
 
 from .config import Settings
+from .errors import UnauthorizedError, UpstreamError
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ class AdoClient:
         endpoint: str,
         params: Optional[dict] = None,
         json_data: Optional[dict] = None,
+        headers: Optional[dict] = None,
     ) -> dict:
         """Make an HTTP request with retry logic."""
         url = f"{self.base_url}/{endpoint}"
@@ -46,6 +48,7 @@ class AdoClient:
                     url=url,
                     params=params,
                     json=json_data,
+                    headers=headers,
                 )
 
                 # Handle rate limiting (429)
@@ -64,19 +67,28 @@ class AdoClient:
                     retries += 1
                     continue
 
+                if response.status_code in (401, 403):
+                    raise UnauthorizedError("Azure DevOps authentication/authorization failed")
+
                 # Success
                 response.raise_for_status()
                 return response.json()
 
             except requests.exceptions.RequestException as e:
+                if isinstance(e, requests.exceptions.HTTPError) and e.response is not None:
+                    status = e.response.status_code
+                    if status in (401, 403):
+                        raise UnauthorizedError("Azure DevOps authentication/authorization failed") from e
+                    if status >= 400:
+                        raise UpstreamError(f"Azure DevOps API returned HTTP {status}", http_status=502) from e
                 if retries >= self.MAX_RETRIES:
-                    raise Exception(f"Request failed after {self.MAX_RETRIES} retries: {e}") from e
+                    raise UpstreamError(f"Request failed after {self.MAX_RETRIES} retries: {e}", http_status=502) from e
                 backoff = self.RETRY_BACKOFF_BASE * (2 ** retries)
                 logger.warning(f"Request error: {e}. Retrying in {backoff} seconds.")
                 time.sleep(backoff)
                 retries += 1
 
-        raise Exception("Max retries exceeded")
+        raise UpstreamError("Max retries exceeded", http_status=502)
 
     def wiql(self, query: str, top: int = 100) -> dict:
         """Run a WIQL query and return work items."""
@@ -123,3 +135,63 @@ class AdoClient:
             data["fields"] = fields
 
         return self._make_request("POST", endpoint, json_data=data)
+
+    def list_repositories(self) -> dict:
+        """List repositories in the current project."""
+        endpoint = "_apis/git/repositories"
+        return self._make_request("GET", endpoint)
+
+    def list_pull_requests(
+        self,
+        repository_id: str,
+        status: str = "active",
+        top: int = 50,
+    ) -> dict:
+        """List pull requests for a repository."""
+        endpoint = f"_apis/git/repositories/{repository_id}/pullrequests"
+        params = {
+            "searchCriteria.status": status,
+            "$top": top,
+        }
+        return self._make_request("GET", endpoint, params=params)
+
+    def list_builds(self, top: int = 25, status_filter: Optional[str] = None) -> dict:
+        """List recent builds for the current project."""
+        endpoint = "_apis/build/builds"
+        params = {"$top": top}
+        if status_filter:
+            params["statusFilter"] = status_filter
+        return self._make_request("GET", endpoint, params=params)
+
+    def create_work_item(self, work_item_type: str, fields: dict) -> dict:
+        """Create a work item using JSON patch operations."""
+        endpoint = f"_apis/wit/workitems/${work_item_type}"
+        patch_ops = [{"op": "add", "path": f"/fields/{k}", "value": v} for k, v in fields.items()]
+        return self._make_request(
+            "POST",
+            endpoint,
+            params=None,
+            json_data=patch_ops,
+            headers={"Content-Type": "application/json-patch+json"},
+        )
+
+    def update_work_item(self, work_item_id: int, fields: dict) -> dict:
+        """Update an existing work item fields via JSON patch."""
+        endpoint = f"_apis/wit/workitems/{work_item_id}"
+        patch_ops = [{"op": "add", "path": f"/fields/{k}", "value": v} for k, v in fields.items()]
+        return self._make_request(
+            "PATCH",
+            endpoint,
+            params=None,
+            json_data=patch_ops,
+            headers={"Content-Type": "application/json-patch+json"},
+        )
+
+    def add_pull_request_comment(self, repository_id: str, pull_request_id: int, content: str) -> dict:
+        """Add a comment thread to a pull request."""
+        endpoint = f"_apis/git/repositories/{repository_id}/pullRequests/{pull_request_id}/threads"
+        body = {
+            "comments": [{"parentCommentId": 0, "content": content, "commentType": 1}],
+            "status": 1,
+        }
+        return self._make_request("POST", endpoint, json_data=body)

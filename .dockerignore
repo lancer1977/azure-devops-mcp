@@ -1,0 +1,51 @@
+# Ignore everything
+*
+
+# But not these (needed for Docker build)
+!app
+!requirements.txt
+!Dockerfile
+
+# Environment files (use env_file in docker-compose instead)
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+.eggs
+dist
+build
+
+# Virtual environments
+.venv
+venv
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Testing
+tests
+.coverage
+htmlcov
+
+# Documentation
+*.md
+!README.md
+LICENSE
+
+# Docker compose files (only needed for local dev)
+docker-compose*.yml
+!docker-compose.yml

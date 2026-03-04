@@ -1,0 +1,40 @@
+services:
+  ado-mcp:
+    image: ghcr.io/lancer1977/azure-devops-mcp:latest
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - PORT=8080
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - ado-mcp-network
+
+networks:
+  ado-mcp-network:
+    driver: overlay
+    attachable: true

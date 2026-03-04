@@ -51,6 +51,8 @@ class TestGetSettings:
         assert settings.ado_api_version == "7.1-preview.3"
         assert settings.port == 8080
         assert settings.log_level == "INFO"
+        assert settings.ado_allow_writes is False
+        assert settings.ado_allowed_work_item_types == "Task,Bug,User Story"
 
     def test_custom_api_version(self):
         """Custom API version should be used."""
@@ -90,3 +92,16 @@ class TestGetSettings:
             settings = get_settings()
 
         assert settings.log_level == "DEBUG"
+
+    def test_enable_writes_flag(self):
+        """ADO_ALLOW_WRITES should parse truthy values."""
+        env = {
+            "ADO_ORG": "https://dev.azure.com/testorg",
+            "ADO_PROJECT": "TestProject",
+            "ADO_PAT": "test-pat-token",
+            "ADO_ALLOW_WRITES": "true",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            settings = get_settings()
+
+        assert settings.ado_allow_writes is True

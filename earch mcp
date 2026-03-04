@@ -1,0 +1,26 @@
+[1mdiff --git a/app/routes.py b/app/routes.py[m
+[1mindex da56863..8b8a114 100644[m
+[1m--- a/app/routes.py[m
+[1m+++ b/app/routes.py[m
+[36m@@ -25,6 +25,21 @@[m [mdef get_ado_client() -> AdoClient:[m
+     return _ado_client[m
+ [m
+ [m
+[32m+[m[32m@api_bp.route("/", methods=["GET"])[m
+[32m+[m[32mdef root():[m
+[32m+[m[32m    """Root endpoint with server info."""[m
+[32m+[m[32m    return jsonify({[m
+[32m+[m[32m        "name": "Azure DevOps MCP Server",[m
+[32m+[m[32m        "version": "1.0.0",[m
+[32m+[m[32m        "endpoints": {[m
+[32m+[m[32m            "health": "/health",[m
+[32m+[m[32m            "tools": "/tools",[m
+[32m+[m[32m            "search_work_items": "/tool/ado.search_work_items",[m
+[32m+[m[32m            "get_work_item": "/tool/ado.get_work_item/<id>"[m
+[32m+[m[32m        }[m
+[32m+[m[32m    })[m
+[32m+[m
+[32m+[m
+ @api_bp.route("/health", methods=["GET"])[m
+ def health():[m
+     """Health check endpoint."""[m

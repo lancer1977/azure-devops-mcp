@@ -17,6 +17,8 @@ class Settings:
     ado_api_version: str = "7.1-preview.3"
     port: int = 8080
     log_level: str = "INFO"
+    ado_allow_writes: bool = False
+    ado_allowed_work_item_types: str = "Task,Bug,User Story"
 
 
 def get_settings() -> Settings:
@@ -36,6 +38,8 @@ def get_settings() -> Settings:
     ado_api_version = os.getenv("ADO_API_VERSION", "7.1-preview.3")
     port = int(os.getenv("PORT", "8080"))
     log_level = os.getenv("LOG_LEVEL", "INFO")
+    ado_allow_writes = os.getenv("ADO_ALLOW_WRITES", "false").lower() in {"1", "true", "yes", "on"}
+    ado_allowed_work_item_types = os.getenv("ADO_ALLOWED_WORK_ITEM_TYPES", "Task,Bug,User Story")
 
     return Settings(
         ado_org=ado_org,
@@ -44,4 +48,6 @@ def get_settings() -> Settings:
         ado_api_version=ado_api_version,
         port=port,
         log_level=log_level,
+        ado_allow_writes=ado_allow_writes,
+        ado_allowed_work_item_types=ado_allowed_work_item_types,
     )

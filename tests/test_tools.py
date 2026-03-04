@@ -39,6 +39,22 @@ class TestToolsManifest:
         tool_names = [t["name"] for t in manifest["tools"]]
         assert "ado.get_work_item" in tool_names
 
+    def test_phase2_tools_exist(self):
+        """Phase 2 tools should exist."""
+        manifest = get_tools_manifest()
+        tool_names = [t["name"] for t in manifest["tools"]]
+        assert "ado.list_repositories" in tool_names
+        assert "ado.list_pull_requests" in tool_names
+        assert "ado.list_builds" in tool_names
+
+    def test_phase3_write_tools_exist(self):
+        """Phase 3 guarded write tools should exist."""
+        manifest = get_tools_manifest()
+        tool_names = [t["name"] for t in manifest["tools"]]
+        assert "ado.create_work_item" in tool_names
+        assert "ado.update_work_item" in tool_names
+        assert "ado.add_pr_comment" in tool_names
+
     def test_search_work_items_input_schema(self):
         """search_work_items should have correct input schema."""
         manifest = get_tools_manifest()
@@ -81,7 +97,7 @@ class TestAPIEndpoints:
         assert response.status_code == 200
         data = response.get_json()
         assert "tools" in data
-        assert len(data["tools"]) == 2
+        assert len(data["tools"]) == 8
 
     def test_search_work_items_missing_wiql(self, client):
         """Missing wiql should return 400."""
